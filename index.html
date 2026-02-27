@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Theme Rotation Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #0f1218;
+    --border: #1e2330;
+    --border-bright: #2a3040;
+    --text: #c8d0e0;
+    --text-dim: #5a6478;
+    --text-bright: #e8edf5;
+    --accent: #00d4aa;
+    --accent-dim: rgba(0,212,170,0.12);
+    --up: #00d4aa;
+    --down: #ff4d6d;
+    --neutral: #5a6478;
+    --up-bg: rgba(0, 212, 170, 0.08);
+    --down-bg: rgba(255, 77, 109, 0.08);
+    --heat-1: rgba(0,212,170,0.9);
+    --heat-2: rgba(0,212,170,0.6);
+    --heat-3: rgba(0,212,170,0.3);
+    --heat-4: rgba(255,77,109,0.3);
+    --heat-5: rgba(255,77,109,0.6);
+    --heat-6: rgba(255,77,109,0.9);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: rgba(10,12,16,0.95);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--text-bright);
+    text-transform: uppercase;
+  }
+
+  .logo span {
+    color: var(--accent);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .last-updated {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+
+  /* MAIN LAYOUT */
+  main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px;
+  }
+
+  /* SECTION HEADER */
+  .section-title {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-title span {
+    color: var(--accent);
+    margin-right: 8px;
+  }
+
+  /* ROTATION SCORE CARDS */
+  .rotation-overview {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .rotation-card {
+    background: var(--surface);
+    padding: 20px 16px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .rotation-card:hover {
+    background: #131720;
+  }
+
+  .rotation-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+  }
+
+  .rotation-card.hot::before { background: var(--up); }
+  .rotation-card.cold::before { background: var(--down); }
+  .rotation-card.neutral::before { background: var(--border-bright); }
+
+  .card-theme {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .card-score {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-bright);
+    margin-bottom: 4px;
+    line-height: 1;
+  }
+
+  .card-score.positive { color: var(--up); }
+  .card-score.negative { color: var(--down); }
+
+  .card-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .card-bars {
+    display: flex;
+    gap: 2px;
+    align-items: flex-end;
+    height: 24px;
+  }
+
+  .mini-bar {
+    flex: 1;
+    min-height: 2px;
+    border-radius: 1px;
+    transition: height 0.5s ease;
+  }
+
+  .card-momentum {
+    font-size: 9px;
+    margin-top: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .momentum-accel { color: var(--up); }
+  .momentum-decel { color: var(--down); }
+  .momentum-flat { color: var(--text-dim); }
+
+  /* MAIN TABLE */
+  .table-section {
+    margin-bottom: 32px;
+  }
+
+  .theme-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border);
+  }
+
+  .theme-table thead tr {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-bright);
+  }
+
+  .theme-table th {
+    padding: 10px 14px;
+    text-align: right;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .theme-table th:first-child { text-align: left; }
+  .theme-table th.sorted { color: var(--accent); }
+
+  .theme-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  .theme-table tbody tr:hover {
+    background: rgba(30,35,48,0.8);
+  }
+
+  .theme-table tbody tr.expanded {
+    background: rgba(20,25,35,0.9);
+  }
+
+  .theme-table td {
+    padding: 12px 14px;
+    text-align: right;
+    font-size: 11px;
+    vertical-align: middle;
+  }
+
+  .theme-table td:first-child { text-align: left; }
+
+  .theme-name {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .theme-name-main {
+    font-size: 12px;
+    color: var(--text-bright);
+    font-weight: 500;
+  }
+
+  .theme-name-etf {
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--border-bright);
+    border-radius: 2px;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+
+  .rank-badge.top { border-color: var(--up); color: var(--up); }
+  .rank-badge.bot { border-color: var(--down); color: var(--down); }
+
+  .cell-pos { color: var(--up); }
+  .cell-neg { color: var(--down); }
+  .cell-neu { color: var(--neutral); }
+
+  .heat-bar {
+    display: inline-block;
+    height: 4px;
+    border-radius: 2px;
+    vertical-align: middle;
+    margin-left: 6px;
+    transition: width 0.6s ease;
+  }
+
+  .sparkline-cell {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .sparkline {
+    width: 60px;
+    height: 20px;
+  }
+
+  /* FLOW INDICATOR */
+  .flow-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+
+  .flow-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+  }
+
+  .flow-strong-in { background: var(--up); }
+  .flow-in { background: rgba(0,212,170,0.5); }
+  .flow-neutral { background: var(--neutral); }
+  .flow-out { background: rgba(255,77,109,0.5); }
+  .flow-strong-out { background: var(--down); }
+
+  /* EXPANDED ROW */
+  .etf-detail-row td {
+    padding: 0 !important;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .etf-detail-inner {
+    padding: 12px 14px 12px 48px;
+    background: #0d1016;
+    display: none;
+  }
+
+  .etf-detail-inner.open {
+    display: block;
+  }
+
+  .etf-sub-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .etf-sub-table th {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .etf-sub-table th:first-child { text-align: left; }
+
+  .etf-sub-table td {
+    font-size: 11px;
+    padding: 6px 10px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .etf-sub-table td:first-child {
+    text-align: left;
+    color: var(--text-dim);
+  }
+
+  .etf-sub-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* HEATMAP SECTION */
+  .heatmap-section {
+    margin-bottom: 32px;
+  }
+
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .heatmap-cell {
+    padding: 14px 12px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .heatmap-cell-name {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(200,208,224,0.7);
+    margin-bottom: 6px;
+  }
+
+  .heatmap-cell-val {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  /* ROTATION MAP */
+  .rotation-map {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px;
+    margin-bottom: 32px;
+    min-height: 200px;
+    position: relative;
+  }
+
+  .rotation-map-title {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .rotation-quadrant {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    height: 280px;
+  }
+
+  .quadrant {
+    background: var(--surface);
+    padding: 12px;
+    position: relative;
+  }
+
+  .quadrant-label {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .quadrant-desc {
+    font-size: 10px;
+    color: var(--text-dim);
+    opacity: 0.6;
+  }
+
+  .q-tl { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .q-tr { border-bottom: 1px solid var(--border); }
+  .q-bl { border-right: 1px solid var(--border); }
+
+  .q-pill {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 2px;
+    font-size: 10px;
+    margin: 2px;
+    border: 1px solid transparent;
+  }
+
+  .q-pill.strong-in { background: var(--up-bg); border-color: rgba(0,212,170,0.3); color: var(--up); }
+  .q-pill.fading { background: rgba(255,200,50,0.08); border-color: rgba(255,200,50,0.2); color: #ffc832; }
+  .q-pill.recovering { background: rgba(100,160,255,0.08); border-color: rgba(100,160,255,0.2); color: #64a0ff; }
+  .q-pill.outflow { background: var(--down-bg); border-color: rgba(255,77,109,0.3); color: var(--down); }
+
+  .quadrant-axis-x {
+    position: absolute;
+    bottom: -16px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 9px;
+    color: var(--text-dim);
+  }
+
+  .quadrant-axis-y {
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: rotate(-90deg) translateX(-50%);
+    font-size: 9px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .rotation-map-wrapper {
+    position: relative;
+    padding: 16px 20px 28px;
+  }
+
+  .axis-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .axis-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .axis-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    position: absolute;
+    left: 8px;
+    top: 16px;
+    bottom: 28px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-dim);
+    font-size: 10px;
+  }
+
+  .loading {
+    color: var(--text-dim);
+    font-size: 11px;
+    padding: 40px;
+    text-align: center;
+    letter-spacing: 0.1em;
+  }
+
+  .loading::after {
+    content: '';
+    animation: dots 1.5s infinite;
+  }
+
+  @keyframes dots {
+    0% { content: '.'; }
+    33% { content: '..'; }
+    66% { content: '...'; }
+  }
+
+  .error-msg {
+    color: var(--down);
+    padding: 12px 16px;
+    border: 1px solid rgba(255,77,109,0.2);
+    background: var(--down-bg);
+    font-size: 11px;
+    margin-bottom: 16px;
+  }
+
+  .toggle-expand {
+    color: var(--text-dim);
+    font-size: 10px;
+    margin-left: 8px;
+    cursor: pointer;
+  }
+
+  /* Animate on load */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-title { animation: fadeIn 0.4s ease both; }
+  .rotation-overview { animation: fadeIn 0.5s ease 0.1s both; }
+  .table-section { animation: fadeIn 0.5s ease 0.2s both; }
+  .heatmap-section { animation: fadeIn 0.5s ease 0.3s both; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">THEME <span>ROTATION</span> TRACKER</div>
+  <div class="header-right">
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      <span id="marketStatus">DAILY</span>
+    </div>
+    <div class="last-updated" id="lastUpdated">Loading…</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ROTATION OVERVIEW CARDS -->
+  <div class="section-title"><span>01</span> THEME ROTATION OVERVIEW — COMPOSITE MOMENTUM SCORE (1D + 1W + 1M)</div>
+  <div class="rotation-overview" id="overviewCards">
+    <div class="loading">Fetching data</div>
+  </div>
+
+  <!-- MAIN RANKING TABLE -->
+  <div class="table-section">
+    <div class="section-title"><span>02</span> THEME PERFORMANCE RANKING — CLICK ROW TO EXPAND ETFs</div>
+    <div id="tableError" class="error-msg" style="display:none"></div>
+    <table class="theme-table" id="mainTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th class="sorted" data-sort="momentum">THEME</th>
+          <th>LEAD ETF</th>
+          <th data-sort="d1">1D%</th>
+          <th data-sort="w1">1W%</th>
+          <th data-sort="m1">1M%</th>
+          <th data-sort="ytd">YTD%</th>
+          <th>5D TREND</th>
+          <th>FLOW SIGNAL</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr><td colspan="9" class="loading">Fetching data</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PERFORMANCE HEATMAP -->
+  <div class="heatmap-section">
+    <div class="section-title"><span>03</span> 1W PERFORMANCE HEATMAP</div>
+    <div class="heatmap-grid" id="heatmapGrid">
+      <div class="loading">Fetching data</div>
+    </div>
+  </div>
+
+  <!-- ROTATION QUADRANT MAP -->
+  <div class="rotation-map">
+    <div class="rotation-map-title">04 — ROTATION PHASE MAP (1W vs 1M MOMENTUM)</div>
+    <div class="rotation-map-wrapper">
+      <div class="axis-row">
+        <div class="axis-label">↑ ACCELERATING</div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:stretch;">
+        <div class="axis-label" style="writing-mode:vertical-rl; transform:rotate(180deg); align-self:center; white-space:nowrap;">← UNDERPERFORM &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; OUTPERFORM →</div>
+        <div class="rotation-quadrant" id="quadrantMap" style="flex:1">
+          <div class="quadrant q-tl">
+            <div class="quadrant-label">▲ MOMENTUM — LEADING</div>
+            <div class="quadrant-desc">Strong recent + sustained</div>
+            <div id="q-leading"></div>
+          </div>
+          <div class="quadrant q-tr">
+            <div class="quadrant-label">▲ RECOVERY — WATCH</div>
+            <div class="quadrant-desc">Improving but not confirmed</div>
+            <div id="q-recovery"></div>
+          </div>
+          <div class="quadrant q-bl">
+            <div class="quadrant-label">▼ FADING — CAUTION</div>
+            <div class="quadrant-desc">Was strong, now slowing</div>
+            <div id="q-fading"></div>
+          </div>
+          <div class="quadrant q-br">
+            <div class="quadrant-label">▼ OUTFLOW — AVOID</div>
+            <div class="quadrant-desc">Consistent weakness</div>
+            <div id="q-outflow"></div>
+          </div>
+        </div>
+      </div>
+      <div class="axis-row" style="margin-top:8px;">
+        <div class="axis-label">↓ DECELERATING</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span>Data: Yahoo Finance · Auto-refreshed daily via GitHub Actions</span>
+  <span id="footerTime"></span>
+</footer>
+
+<script>
+// ─── THEME DEFINITIONS ──────────────────────────────────────────────────────
+const THEMES = [
+  {
+    name: "AI & Tech",
+    etfs: [
+      { ticker: "QQQ",  label: "Nasdaq 100" },
+      { ticker: "BOTZ", label: "AI Robots" },
+      { ticker: "AIQ",  label: "AI & Big Data" },
+      { ticker: "SOXX", label: "Semiconductors" },
+      { ticker: "ARKQ", label: "Autonomous Tech" },
+    ]
+  },
+  {
+    name: "Defence & Aerospace",
+    etfs: [
+      { ticker: "ITA",  label: "Aerospace & Def" },
+      { ticker: "XAR",  label: "SPDR Aerospace" },
+      { ticker: "DFEN", label: "3x Aerospace" },
+      { ticker: "PPA",  label: "Invesco Defence" },
+    ]
+  },
+  {
+    name: "Financials & Banks",
+    etfs: [
+      { ticker: "XLF",  label: "Financials SPDR" },
+      { ticker: "KBE",  label: "Bank ETF" },
+      { ticker: "KRE",  label: "Regional Banks" },
+      { ticker: "IAI",  label: "Broker-Dealers" },
+    ]
+  },
+  {
+    name: "Clean Energy",
+    etfs: [
+      { ticker: "ICLN", label: "Global Clean Energy" },
+      { ticker: "QCLN", label: "Clean Edge Energy" },
+      { ticker: "TAN",  label: "Solar Energy" },
+      { ticker: "FAN",  label: "Wind Energy" },
+      { ticker: "BATT", label: "Battery Storage" },
+    ]
+  },
+  {
+    name: "Commodities & Mining",
+    etfs: [
+      { ticker: "GLD",  label: "Gold" },
+      { ticker: "SLV",  label: "Silver" },
+      { ticker: "COPX", label: "Copper Miners" },
+      { ticker: "XME",  label: "Metals & Mining" },
+      { ticker: "DBC",  label: "Commodities" },
+    ]
+  },
+  {
+    name: "Healthcare & Biotech",
+    etfs: [
+      { ticker: "XLV",  label: "Healthcare SPDR" },
+      { ticker: "IBB",  label: "Biotech" },
+      { ticker: "XBI",  label: "Biotech EW" },
+      { ticker: "IHI",  label: "Medical Devices" },
+      { ticker: "ARKG", label: "Genomic Innov." },
+    ]
+  }
+];
+
+// ─── DATA FETCHING ──────────────────────────────────────────────────────────
+// The dashboard tries to load from data.json (produced by GitHub Actions),
+// then falls back to live Yahoo Finance proxy via allorigins.
+
+let themeData = []; // Processed theme objects
+
+async function fetchTickerData(ticker) {
+  // Try our pre-built data.json first (fastest, no CORS issues)
+  return null; // Handled in loadAllData
+}
+
+async function loadFromDataJson() {
+  try {
+    const r = await fetch('data.json?t=' + Date.now());
+    if (!r.ok) throw new Error('No data.json');
+    const d = await r.json();
+    return d;
+  } catch(e) {
+    return null;
+  }
+}
+
+async function fetchYahooViaProxy(ticker) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1mo`;
+  const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+  const r = await fetch(proxy);
+  const { contents } = await r.json();
+  const data = JSON.parse(contents);
+  const result = data.chart.result[0];
+  const meta = result.meta;
+  const closes = result.indicators.quote[0].close;
+  const timestamps = result.timestamp;
+
+  const last = closes[closes.length - 1];
+  const prev1d = closes[closes.length - 2];
+  const prev1w = closes[closes.length - 6] || closes[0];
+  const prev1m = closes[0];
+
+  // YTD — approximate (use oldest available as proxy)
+  const pct1d = ((last - prev1d) / prev1d) * 100;
+  const pct1w = ((last - prev1w) / prev1w) * 100;
+  const pct1m = ((last - prev1m) / prev1m) * 100;
+
+  // 5-day trend array (last 5 closes)
+  const trend5 = closes.slice(-5);
+
+  return {
+    ticker,
+    price: last,
+    pct1d, pct1w, pct1m,
+    pctYtd: null, // Yahoo free tier doesn't give reliable YTD
+    trend5
+  };
+}
+
+async function loadAllData() {
+  // 1. Try data.json (GitHub Actions daily build)
+  const jsonData = await loadFromDataJson();
+
+  if (jsonData && jsonData.themes) {
+    themeData = jsonData.themes;
+    document.getElementById('lastUpdated').textContent = 'Updated: ' + jsonData.updated;
+    return;
+  }
+
+  // 2. Fall back: live fetch via proxy
+  document.getElementById('lastUpdated').textContent = 'Fetching live data…';
+
+  const allTickers = THEMES.flatMap(t => t.etfs.map(e => e.ticker));
+  const results = {};
+
+  // Fetch in parallel (limit concurrency to avoid rate limits)
+  const batches = [];
+  for (let i = 0; i < allTickers.length; i += 4) {
+    batches.push(allTickers.slice(i, i + 4));
+  }
+
+  for (const batch of batches) {
+    await Promise.all(batch.map(async t => {
+      try {
+        results[t] = await fetchYahooViaProxy(t);
+      } catch(e) {
+        console.warn('Failed:', t, e);
+        results[t] = { ticker: t, price: null, pct1d: null, pct1w: null, pct1m: null, pctYtd: null, trend5: [] };
+      }
+    }));
+    await new Promise(r => setTimeout(r, 300)); // small delay
+  }
+
+  // Build theme data
+  themeData = THEMES.map(theme => {
+    const etfData = theme.etfs.map(e => ({
+      ...e,
+      ...results[e.ticker]
+    }));
+
+    // Use first (lead) ETF as primary, average for composite score
+    const valid = etfData.filter(e => e.pct1w !== null);
+    const avg1d = valid.reduce((s, e) => s + (e.pct1d || 0), 0) / (valid.length || 1);
+    const avg1w = valid.reduce((s, e) => s + (e.pct1w || 0), 0) / (valid.length || 1);
+    const avg1m = valid.reduce((s, e) => s + (e.pct1m || 0), 0) / (valid.length || 1);
+    const momentum = (avg1d * 0.3) + (avg1w * 0.4) + (avg1m * 0.3);
+
+    return {
+      name: theme.name,
+      etfs: etfData,
+      lead: etfData[0],
+      avg1d, avg1w, avg1m,
+      avgYtd: null,
+      momentum
+    };
+  });
+
+  document.getElementById('lastUpdated').textContent =
+    'Live · ' + new Date().toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' ET';
+}
+
+// ─── RENDERING ──────────────────────────────────────────────────────────────
+
+function fmt(val, decimals = 2) {
+  if (val === null || val === undefined) return '—';
+  return (val >= 0 ? '+' : '') + val.toFixed(decimals) + '%';
+}
+
+function colorClass(val) {
+  if (val === null) return 'cell-neu';
+  if (val > 0.5) return 'cell-pos';
+  if (val < -0.5) return 'cell-neg';
+  return 'cell-neu';
+}
+
+function getHeatColor(val) {
+  if (val === null) return '#1e2330';
+  if (val > 5)   return 'rgba(0,212,170,0.85)';
+  if (val > 2)   return 'rgba(0,212,170,0.55)';
+  if (val > 0.5) return 'rgba(0,212,170,0.28)';
+  if (val > -0.5) return 'rgba(90,100,120,0.3)';
+  if (val > -2)  return 'rgba(255,77,109,0.28)';
+  if (val > -5)  return 'rgba(255,77,109,0.55)';
+  return 'rgba(255,77,109,0.85)';
+}
+
+function getMomentumLabel(d1, w1, m1) {
+  const score = (d1 || 0) * 0.3 + (w1 || 0) * 0.4 + (m1 || 0) * 0.3;
+  if (score > 2) return ['▲ STRONG INFLOW', 'hot', 'momentum-accel'];
+  if (score > 0.5) return ['→ MILD INFLOW', 'neutral', 'momentum-accel'];
+  if (score > -0.5) return ['→ NEUTRAL FLOW', 'neutral', 'momentum-flat'];
+  if (score > -2) return ['↓ MILD OUTFLOW', 'neutral', 'momentum-decel'];
+  return ['▼ STRONG OUTFLOW', 'cold', 'momentum-decel'];
+}
+
+function getMomentumScore(t) {
+  return (t.avg1d || 0) * 0.3 + (t.avg1w || 0) * 0.4 + (t.avg1m || 0) * 0.3;
+}
+
+function flowSignal(t) {
+  const s = getMomentumScore(t);
+  if (s > 2) return { label: 'STRONG IN', dots: 5, cls: 'flow-strong-in' };
+  if (s > 0.5) return { label: 'IN', dots: 4, cls: 'flow-in' };
+  if (s > -0.5) return { label: 'NEUTRAL', dots: 3, cls: 'flow-neutral' };
+  if (s > -2) return { label: 'OUT', dots: 2, cls: 'flow-out' };
+  return { label: 'STRONG OUT', dots: 1, cls: 'flow-strong-out' };
+}
+
+function makeSVGSparkline(trend) {
+  if (!trend || trend.length < 2) return '<svg class="sparkline" viewBox="0 0 60 20"><text x="0" y="15" font-size="8" fill="#5a6478">—</text></svg>';
+  const min = Math.min(...trend);
+  const max = Math.max(...trend);
+  const range = max - min || 1;
+  const pts = trend.map((v, i) => {
+    const x = (i / (trend.length - 1)) * 58 + 1;
+    const y = 18 - ((v - min) / range) * 16;
+    return `${x},${y}`;
+  }).join(' ');
+  const color = trend[trend.length-1] >= trend[0] ? '#00d4aa' : '#ff4d6d';
+  return `<svg class="sparkline" viewBox="0 0 60 20"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+}
+
+function renderOverviewCards() {
+  const sorted = [...themeData].sort((a, b) => getMomentumScore(b) - getMomentumScore(a));
+  const container = document.getElementById('overviewCards');
+  container.innerHTML = '';
+
+  sorted.forEach(t => {
+    const score = getMomentumScore(t);
+    const [label, hotClass, momCls] = getMomentumLabel(t.avg1d, t.avg1w, t.avg1m);
+    const trend = t.lead?.trend5 || [];
+    const minT = trend.length ? Math.min(...trend) : 0;
+    const maxT = trend.length ? Math.max(...trend) : 1;
+    const rangeT = maxT - minT || 1;
+
+    const barsHtml = trend.map(v => {
+      const h = Math.max(2, Math.round(((v - minT) / rangeT) * 22));
+      const color = v >= (trend[0] || v) ? 'var(--up)' : 'var(--down)';
+      return `<div class="mini-bar" style="height:${h}px;background:${color}"></div>`;
+    }).join('');
+
+    const card = document.createElement('div');
+    card.className = `rotation-card ${hotClass}`;
+    card.innerHTML = `
+      <div class="card-theme">${t.name}</div>
+      <div class="card-score ${score >= 0 ? 'positive' : 'negative'}">${score >= 0 ? '+' : ''}${score.toFixed(2)}</div>
+      <div class="card-label">COMPOSITE SCORE</div>
+      <div class="card-bars">${barsHtml || '<div style="color:var(--text-dim);font-size:9px">—</div>'}</div>
+      <div class="card-momentum ${momCls}">${label}</div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function renderTable(sortKey = 'momentum', sortDir = -1) {
+  const sorted = [...themeData].sort((a, b) => {
+    let av, bv;
+    if (sortKey === 'momentum') { av = getMomentumScore(a); bv = getMomentumScore(b); }
+    else if (sortKey === 'd1') { av = a.avg1d; bv = b.avg1d; }
+    else if (sortKey === 'w1') { av = a.avg1w; bv = b.avg1w; }
+    else if (sortKey === 'm1') { av = a.avg1m; bv = b.avg1m; }
+    else if (sortKey === 'ytd') { av = a.avgYtd; bv = b.avgYtd; }
+    else { av = getMomentumScore(a); bv = getMomentumScore(b); }
+    return sortDir * ((bv || -999) - (av || -999));
+  });
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+
+  sorted.forEach((t, i) => {
+    const isTop = i === 0;
+    const isBot = i === sorted.length - 1;
+    const flow = flowSignal(t);
+    const rankClass = isTop ? 'top' : isBot ? 'bot' : '';
+
+    // Flow dots (5 max)
+    const dotsHtml = [1,2,3,4,5].map(d => {
+      const active = d <= flow.dots;
+      return `<div class="flow-dot" style="background:${active ? '' : 'transparent'};border:1px solid ${active ? 'transparent' : 'var(--border-bright)'}"
+        class="${active ? flow.cls : ''}"></div>`;
+    }).join('');
+
+    const spark = makeSVGSparkline(t.lead?.trend5);
+    const leadTicker = t.lead?.ticker || '—';
+
+    const tr = document.createElement('tr');
+    tr.dataset.theme = i;
+    tr.innerHTML = `
+      <td><span class="rank-badge ${rankClass}">${i+1}</span></td>
+      <td>
+        <div class="theme-name">
+          <div class="theme-name-main">${t.name} <span class="toggle-expand" id="exp-${i}">▸</span></div>
+          <div class="theme-name-etf">${t.etfs.map(e=>e.ticker).join(' · ')}</div>
+        </div>
+      </td>
+      <td>${leadTicker}</td>
+      <td class="${colorClass(t.avg1d)}">${fmt(t.avg1d)}</td>
+      <td class="${colorClass(t.avg1w)}">${fmt(t.avg1w)}</td>
+      <td class="${colorClass(t.avg1m)}">${fmt(t.avg1m)}</td>
+      <td class="${colorClass(t.avgYtd)}">${fmt(t.avgYtd)}</td>
+      <td class="sparkline-cell">${spark}</td>
+      <td>
+        <div class="flow-indicator">
+          <span style="font-size:9px;color:${flow.dots>=4?'var(--up)':flow.dots<=2?'var(--down)':'var(--text-dim)'}">${flow.label}</span>
+          ${[1,2,3,4,5].map(d => `<div class="flow-dot ${d<=flow.dots?flow.cls:''}" style="${d<=flow.dots?'':'background:transparent;border:1px solid var(--border-bright)'}"></div>`).join('')}
+        </div>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+
+    // Expanded sub-table row
+    const detailTr = document.createElement('tr');
+    detailTr.className = 'etf-detail-row';
+    const subRows = t.etfs.map(e => `
+      <tr>
+        <td>${e.ticker} — ${e.label}</td>
+        <td class="${colorClass(e.pct1d)}">${fmt(e.pct1d)}</td>
+        <td class="${colorClass(e.pct1w)}">${fmt(e.pct1w)}</td>
+        <td class="${colorClass(e.pct1m)}">${fmt(e.pct1m)}</td>
+        <td class="${colorClass(e.pctYtd)}">${fmt(e.pctYtd)}</td>
+        <td class="sparkline-cell">${makeSVGSparkline(e.trend5)}</td>
+      </tr>
+    `).join('');
+
+    detailTr.innerHTML = `<td colspan="9">
+      <div class="etf-detail-inner" id="detail-${i}">
+        <table class="etf-sub-table">
+          <thead><tr>
+            <th>ETF</th><th>1D%</th><th>1W%</th><th>1M%</th><th>YTD%</th><th>TREND</th>
+          </tr></thead>
+          <tbody>${subRows}</tbody>
+        </table>
+      </div>
+    </td>`;
+    tbody.appendChild(detailTr);
+
+    // Toggle expand
+    tr.addEventListener('click', () => {
+      const detail = document.getElementById(`detail-${i}`);
+      const expIcon = document.getElementById(`exp-${i}`);
+      const open = detail.classList.toggle('open');
+      expIcon.textContent = open ? '▾' : '▸';
+    });
+  });
+
+  // Sort header highlight
+  document.querySelectorAll('.theme-table th').forEach(th => {
+    th.classList.remove('sorted');
+    if (th.dataset.sort === sortKey) th.classList.add('sorted');
+    if (th.dataset.sort) {
+      th.addEventListener('click', () => {
+        const newDir = (th.dataset.sort === sortKey) ? -sortDir : -1;
+        renderTable(th.dataset.sort, newDir);
+      }, { once: true });
+    }
+  });
+}
+
+function renderHeatmap() {
+  const container = document.getElementById('heatmapGrid');
+  container.innerHTML = '';
+
+  // Sort by 1W for heatmap order
+  const sorted = [...themeData].sort((a, b) => (b.avg1w || 0) - (a.avg1w || 0));
+
+  sorted.forEach(t => {
+    const bg = getHeatColor(t.avg1w);
+    const textColor = Math.abs(t.avg1w || 0) > 2 ? '#0a0c10' : 'var(--text)';
+    const cell = document.createElement('div');
+    cell.className = 'heatmap-cell';
+    cell.style.background = bg;
+    cell.innerHTML = `
+      <div class="heatmap-cell-name" style="color:${Math.abs(t.avg1w||0)>2?'rgba(10,12,16,0.8)':'var(--text-dim)'}">${t.name}</div>
+      <div class="heatmap-cell-val" style="color:${textColor}">${fmt(t.avg1w)}</div>
+      <div style="font-size:9px;margin-top:4px;color:${Math.abs(t.avg1w||0)>2?'rgba(10,12,16,0.7)':'var(--text-dim)'}">1W</div>
+    `;
+    container.appendChild(cell);
+  });
+}
+
+function renderQuadrant() {
+  // X axis: 1W perf (outperform/underperform vs median)
+  // Y axis: 1D vs 1W momentum change (accelerating/decelerating)
+  const med1w = themeData.reduce((s, t) => s + (t.avg1w||0), 0) / themeData.length;
+
+  themeData.forEach(t => {
+    const xPos = (t.avg1w||0) > med1w; // true = right (outperform)
+    const yPos = (t.avg1d||0) > (t.avg1w||0)/5; // true = top (accelerating)
+
+    let qId, pillCls;
+    if (xPos && yPos)   { qId = 'q-leading';  pillCls = 'strong-in'; }
+    else if (!xPos && yPos) { qId = 'q-recovery'; pillCls = 'recovering'; }
+    else if (xPos && !yPos) { qId = 'q-fading';   pillCls = 'fading'; }
+    else                    { qId = 'q-outflow';   pillCls = 'outflow'; }
+
+    const el = document.getElementById(qId);
+    if (el) el.innerHTML += `<span class="q-pill ${pillCls}">${t.name}</span>`;
+  });
+}
+
+// ─── MAIN ───────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    await loadAllData();
+    renderOverviewCards();
+    renderTable();
+    renderHeatmap();
+    renderQuadrant();
+
+    document.getElementById('footerTime').textContent =
+      'Generated: ' + new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  } catch(err) {
+    document.getElementById('tableError').style.display = 'block';
+    document.getElementById('tableError').textContent = 'Error loading data: ' + err.message;
+    console.error(err);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
